@@ -1,0 +1,854 @@
+---
+title: "Alternating Reward — Stroop variant (ARS) Pilot"
+format: 
+  html:
+    page-layout: full
+    theme: default
+    font-size: 18px
+    toc: true
+output-file: index.html
+editor: visual
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+rm(list=ls())
+cat('\14')
+
+library(tidyverse)
+library(gt)
+library(stringr)
+library(lme4)
+library(lmerTest)
+library(psychReport)
+library(ggplot2)
+
+data_path <- "C:/Users/deyne/Documents/WashU_Job/MURI_Position/Stroop Reward Task/data/"
+# knitr::opts_knit$set(root.dir = data_path)
+# # setwd(data_path) 
+```
+
+```{r}
+#| echo: false
+#| label: read-data
+
+df <- read.csv(paste(data_path, "data_cleaned.csv", sep=""))
+
+# variables used in multiple chunks
+unique_ids <- unique(df$ProlificID)
+
+short_id_len <- 7 # length of the short ID format
+df$ShortID <- substr(df$ProlificID, 1, short_id_len)
+unique_sids <- unique(df$ShortID)
+cat("added short ids to data... \n")
+
+
+if(length(unique_ids) == length(unique_sids)){
+  msg = paste("ID formats match in number", length(unique_sids), ".\n\n")
+} else{
+  msg = paste("**WARNING**: ID formats do not match in number (long = ",
+  length(unique_ids), "; short = ", length(unique_sids),
+  ").\nConsider increasing the length of the short ID format.\n", sep="")
+}
+
+cat(msg)
+```
+
+::: {.callout-note collapse="true" appearance="minimal"}
+## Minimal QC checks
+::: {.panel-tabset}
+#### Checking Overall Trial Counts
+
+```{r}
+#| echo: false
+#| label: trial_count_check
+#| results: asis
+
+expected_count <- 1056 # minnimum count, multiple learning tries will increase this count
+experiment_expected_count <- 1008 # maximum number of trials combining baseline and alternating blocks
+
+trial_counts_df <- data.frame(
+  shortid = character(), 
+  count = numeric(),
+  experiment_count = numeric(),
+  check = logical()
+  )
+num_checks <- 0
+for(p in unique_sids){
+  temp_df <- df[df$ShortID==p, ]
+  trial_count <- length(temp_df$ProlificID) # using column that exists in the source data to count trials
+  experiment_count <- as.numeric(temp_df |>
+                                   filter(BlockType != "Learning" & BlockType!= "Practice") |>
+                                   tally())
+  if(trial_count>=expected_count & experiment_count == experiment_expected_count){
+    trial_counts_df <- rbind(trial_counts_df, data.frame(prolificid = p, count = trial_count, check = FALSE))
+  }
+  else{
+    trial_counts_df <- rbind(trial_counts_df, data.frame(prolificid = p, count = trial_count, check = TRUE))
+    num_checks <- num_checks+ 1
+  }
+}
+# cat('<div style="font-size: 24px;">') 
+cat(num_checks, "checks needed.")
+# cat('</div>')
+DT::datatable(trial_counts_df)
+
+
+
+
+
+
+```
+
+
+
+#### Inspecting Trial Structure per Participant
+
+```{r}
+#| echo: false
+#| label: adding-additional-columns
+
+
+df$data_exists <- !is.na(df$Stimulus.RT) & !is.na(df$Stimulus.RESP)
+df$rewarded_this_cycle <- ifelse(df$rewardedColor==df$Color, "Yes", "No")
+df$rewarded_this_cycle <- as.factor(df$rewarded_this_cycle)
+
+# important to add this PRIOR to filtering
+df$joint_trial_num <- NA
+
+for (id in unique_ids) {
+  idx <- which(df$ProlificID == id)
+
+  max_b <- max(df$btrial_num[idx], na.rm = TRUE)
+  
+  # baseline trials
+  idx_base <- idx[df$BlockType[idx] == "StroopBaseline" & !is.na(df$btrial_num[idx])]
+  df$joint_trial_num[idx_base] <- df$btrial_num[idx_base]
+  
+  # alternating trials
+  idx_alt <- idx[df$BlockType[idx] != "StroopBaseline" & !is.na(df$abtrial_num[idx])]
+  df$joint_trial_num[idx_alt] <- df$abtrial_num[idx_alt] + max_b
+}
+
+df$rtc_trialnum <- NA
+for (id in unique_ids){
+  idx <- which(df$ProlificID == id & df$rewarded_this_cycle=="Yes")
+  counter = 0
+  for (rtc_trial in idx){
+    counter = counter + 1
+    df$rtc_trialnum[rtc_trial] = counter
+  }
+}
+
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: trial_structure_inspection
+#| fig-width: 20
+#| fig-height: 24
+#| dpi: 150
+#| fig-format: "svg"
+#| fig-retina: 2
+
+# colors for block types
+fill_colors <- c(
+  "StroopBaseline" = "white", 
+  "RewardList" = "paleturquoise1",     
+  "NoRewardList" = "grey"   
+)
+
+# colors for congruency
+congruency_colors <- c(
+  "Congruent" = "lightgreen",
+  "Incongruent" = "lightcoral"
+)
+
+
+# alpha for reward trial type
+reward_alpha <- c(
+  "0" = 0.2,
+  "1" = 1
+) 
+
+pad_line <- 0.15
+
+shade_list <- list()
+for (id in unique(df$ShortID)) {
+  temp_df <- df[df$ShortID == id & df$data_exists, ]
+  block_types <- temp_df$BlockType
+  joint_nums <- temp_df$joint_trial_num
+  n <- nrow(temp_df)
+  region_starts <- c(1, which(block_types[-1] != block_types[-n]) + 1)
+  region_ends <- c(region_starts[-1] - 1, n)
+  shade_df <- data.frame(
+    ShortID = id,
+    xmin = joint_nums[region_starts],
+    xmax = joint_nums[region_ends],
+    BlockType = block_types[region_starts]
+  )
+  shade_df <- shade_df[shade_df$BlockType %in% c("StroopBaseline", "RewardList", "NoRewardList"), ]
+  shade_list[[id]] <- shade_df
+}
+all_shade_df <- do.call(rbind, shade_list)
+
+vline_df <- aggregate(btrial_num ~ ShortID, data = df, FUN = function(x) max(x, na.rm = TRUE))
+vline_df$x_break <- vline_df$btrial_num + 0.5
+
+p <- ggplot(df[df$data_exists, ], aes(x = joint_trial_num)) +
+  # shading
+  geom_rect(
+    data = all_shade_df,
+    inherit.aes = FALSE,
+    aes(xmin = xmin - 0.5, xmax = xmax + 0.5, ymin = -Inf, ymax = Inf, fill = BlockType),
+    alpha = 0.2
+  ) +
+  scale_fill_manual(values = fill_colors) +
+  # geom_point(aes(y = (Stimulus.RT/1000), color = Congruency, alpha = rewarded_this_cycle)) +
+  geom_linerange(aes(ymin = (Stimulus.RT/1000)-pad_line, ymax = (Stimulus.RT/1000)+pad_line,
+                     color = Congruency, alpha = rewarded_this_cycle), size = 0.5) +
+  scale_color_manual(values = congruency_colors) +
+  # vertical lines for block transitions
+  geom_vline(
+    data = vline_df,
+    aes(xintercept = x_break),
+    color = "black", size = .75, linetype = 2, inherit.aes = FALSE
+  ) +
+  labs(
+    title = "Data available (experimental blocks) by participant",
+    x = "Trial Number",
+    y = "RT (seconds)"
+  ) +
+  scale_alpha_manual(values = reward_alpha, na.value = 0.5) +
+  scale_x_continuous(
+    limits = c(1, max(df$joint_trial_num, na.rm = T)+1), # adding extra trial so shading can work
+    breaks = seq(72, max(df$joint_trial_num, na.rm = T), by = 72) # 72 is 1/2 block length
+  ) +
+  scale_y_continuous(limits = c(0, 3)) +
+  facet_wrap(~ ShortID, scales = "free_x", ncol = 2) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_blank()
+  )
+
+ggsave(
+  filename = "participant_trial_structure.svg", 
+  plot = p,
+  device = "svg",
+  width = 20,  
+  height = 24,  
+  dpi = 300,   
+  bg = "white" 
+)
+
+rm(p) # clearing space
+```
+
+
+![](participant_trial_structure.svg){.lightbox}
+:::
+:::
+
+## Filters
+
+```{r}
+#| label: Filters
+
+# RT cutoffs based on prior work
+# removing  " 6837a5" (note the leading space); 
+#   RTs < 100 during non-rewarded blocks; speeding past those blocks
+data <- df |>
+  filter(Stimulus.RT>200 & Stimulus.RT<3000 & ShortID != " 6837a5")
+
+# reset unique_ids and unique_sids for summaries
+unique_ids <- unique(data$ProlificID)
+unique_sids <- unique(data$ShortID)
+```
+
+## rt density plots
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: RT-distributions
+#| fig-width: 18
+#| fig-height: 18
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+
+cutoff_rts <- data |>
+  filter(Stimulus.ACC == 1) |>
+  group_by(ShortID) |>
+  summarise(
+    cutoff_cong = round(unique(CutoffRTcong.Session.)),
+    cutoff_incong = round(unique(CutoffRTincong.Session.))
+  ) |>
+  pivot_longer(
+    cols = c(cutoff_cong, cutoff_incong),
+    names_to = "cutoff_type",
+    values_to = "rt_value"
+  )
+
+p <- data |>
+  filter(Stimulus.ACC == 1 & !is.na(AlternatingBlocks)) |>
+  ggplot(aes(x = Stimulus.RT)) + 
+  geom_histogram(aes(y = ..density..), colour = "black", fill = "white", bins = 50) +
+  geom_density(alpha = .2, fill = "grey40") +
+  geom_vline(data = cutoff_rts, 
+             aes(xintercept = rt_value, color = cutoff_type), 
+             linetype = "dashed", linewidth = 0.8) +
+  scale_color_manual(
+    values = c("cutoff_cong" = "lightgreen", "cutoff_incong" = "lightcoral"),
+    labels = c("Congruent Cutoff", "Incongruent Cutoff")
+  ) +
+  facet_wrap(~ ShortID, scales = "free_y", ncol=3) +
+  scale_x_continuous(
+    limits = c(150, 3000),
+    # expand = c(0.02, 0.02),
+    breaks = seq(300, 2800, by = 500)
+  ) +
+  labs(
+    title = "RT by Participant",
+    x = "RT (ms)",
+    y = "Density"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "None",
+    strip.text = element_text(size = 12),
+    axis.text = element_text(size = 12)
+  )
+
+ggsave(
+  filename = "participant_rt_dist.svg", 
+  plot = p,
+  device = "svg",
+  width = 18,  
+  height = 18,  
+  dpi = 300,   
+  bg = "white" 
+)
+
+rm(p) # clearing space
+```
+
+![](participant_rt_dist.svg){.lightbox}
+
+## Alternating Blocks
+
+### Reward x Congruency RT Summmaries
+
+```{r}
+#| results: asis
+#| echo: false
+
+ab_rt_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
+  droplevels() |>
+  group_by(ShortID, RewardTrial, Congruency) |>
+  summarise(
+    mean_rt = mean(Stimulus.RT, na.rm = TRUE),
+    sd_rt = sd(Stimulus.RT, na.rm = TRUE),
+    n = n(), 
+    .groups = "drop"
+  )
+
+cat("\n\n#### Overall\n\n")
+print(
+  ab_rt_summary |>
+    group_by(RewardTrial, Congruency) |>
+    summarise(
+      means = round(mean(mean_rt, na.rm = TRUE)),
+      sd = sd(mean_rt, na.rm = TRUE),
+      n = n(),
+      .groups = "drop"
+      ) |>
+    knitr::kable(
+      format = "markdown",
+      digits = 0
+      ) |>
+    kableExtra::kable_styling(full_width = FALSE, position = "left")
+)
+
+cat('
+<div>
+<details>
+<summary style="cursor: pointer; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+Click to show/hide participant-specific details
+</summary>
+<div class="panel-tabset">
+')
+# Participant specific content
+cat("\n\n#### Participant specific\n\n")
+
+for (id in unique_sids) {
+  cat("\n\n##### ", id, "\n\n")
+  
+  print(
+    ab_rt_summary |>
+      filter(ShortID == id) |>
+      select(-ShortID) |>
+      knitr::kable(
+        format = "markdown",
+        digits = 0
+      ) |>
+      kableExtra::kable_styling(full_width = FALSE, position = "left")
+  )
+
+  cat("\n\n")
+}
+
+
+cat('
+</div>
+</details>
+</div>
+')
+```
+
+### Reward x Congruency Error Rate Summmaries
+
+```{r}
+#| results: asis
+#| echo: false
+
+ab_err_summary <- data |>
+  filter(!is.na(AlternatingBlocks)) |>
+  droplevels() |>
+  group_by(ShortID, RewardTrial, Congruency) |>
+  summarise(
+    mean_err = mean((1-Stimulus.ACC), na.rm = TRUE), # 1 - acc for err
+    sd_err = sd((1-Stimulus.ACC), na.rm = TRUE),
+    n = n(), 
+    .groups = "drop"
+  )
+
+cat("\n\n#### Overall\n\n")
+print(
+  ab_err_summary |>
+    group_by(RewardTrial, Congruency) |>
+    summarise(
+      means = round(mean(mean_err, na.rm = TRUE), 3),
+      sd = sd(mean_err, na.rm = TRUE),
+      n = n(),
+      .groups = "drop"
+      ) |>
+    knitr::kable(
+      format = "markdown",
+      digits = 3
+      ) |>
+    kableExtra::kable_styling(full_width = FALSE, position = "left")
+)
+
+cat('
+<div>
+<details>
+<summary style="cursor: pointer; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+Click to show/hide participant-specific details
+</summary>
+<div class="panel-tabset">
+')
+
+
+cat("\n\n#### Participant specific\n\n")
+
+for (id in unique_sids) {
+  cat("\n\n##### ", id, "\n\n")
+  
+  print(
+    ab_err_summary |>
+      filter(ShortID == id) |>
+      select(-ShortID) |>
+      knitr::kable(
+        format = "markdown",
+        digits = 3
+      ) |>
+      kableExtra::kable_styling(full_width = FALSE, position = "left")
+    
+  )
+
+  cat("\n\n")
+}
+
+cat('
+</div>
+</details>
+</div>
+')
+```
+
+### Rewarded Color (by cycle) x Reward Block x Congruency RT Summmaries
+
+```{r}
+#| results: asis
+#| echo: false
+#| fig-width: 9
+#| fig-height: 6
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+
+cycle_rt_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
+  droplevels() |>
+  group_by(ShortID, BlockType, rewarded_this_cycle, Congruency) |>
+  summarise(
+    mean_rt = round(mean(Stimulus.RT, na.rm = TRUE)),
+    sd_rt = round(sd(Stimulus.RT, na.rm = TRUE)),
+    n = n(), 
+    .groups = "drop"
+  ) |>
+  mutate(BlockType = factor(BlockType, 
+                           levels = c("RewardList", "NoRewardList")))
+
+# cycle_rt_summary$BlockType <- factor(cycle_rt_summary$BlockType,
+#                                     levels = c("RewardList", "NoRewardList"),
+#                                     labels = c("Reward", "No Reward"))
+
+cat("\n\n#### Overall\n\n")
+
+cycle_rt_overall <- cycle_rt_summary |>
+  group_by(BlockType, rewarded_this_cycle, Congruency) |>
+  summarise(
+    means = round(mean(mean_rt, na.rm = TRUE)),
+    sd = round(sd(mean_rt, na.rm = TRUE)),
+    n = n(),
+    .groups = "drop"
+    ) |>
+  mutate(se = round(sd/sqrt(n)))
+
+print(
+  cycle_rt_overall |> 
+    knitr::kable(
+      format = "markdown",
+      digits = 0) |>
+    kableExtra::kable_styling(full_width = FALSE, position = "left")
+)
+
+
+
+p <- ggplot(data=cycle_rt_overall, aes(x=Congruency, y=means,
+                                  group=rewarded_this_cycle,
+                                  color=rewarded_this_cycle,
+                                  shape=rewarded_this_cycle))+
+  geom_point(size=3)+
+  geom_line(size=1) +
+  geom_errorbar(aes(ymin=means-se, ymax=means+se), width=.1) +
+  geom_text(aes(label=means), 
+          vjust=-1,
+          hjust=-.01,
+          size=3.5,
+          color = "black",
+          show.legend=FALSE) +  # Don't show in legend
+  xlab("Trial Type") +
+  ylab("Reaction Time (ms)") +
+  facet_wrap(~BlockType) +
+  scale_color_manual(
+    values = c("Yes" = "turquoise3", "No" = "darkgrey")
+  ) +
+  # coord_cartesian(ylim=c(580, 760))+
+  theme_classic() +
+  theme(axis.title.x = element_text(size=14),
+        axis.title.y = element_text(size=14),
+        axis.text.x= element_text(size = 15, color = "black"),
+        axis.text.y= element_text(size = 15, color = "black"),
+        legend.title=element_text(size=14),
+        legend.text = element_text(size=14))
+
+ggsave(
+  filename = "rewarded_cycle.svg", 
+  plot = p,
+  device = "svg",
+  width = 9,  
+  height = 6,  
+  dpi = 300,   
+  bg = "white" 
+)
+
+rm(p) # clearing space
+```
+
+![](rewarded_cycle.svg){.lightbox}
+
+```{r}
+#| results: asis
+#| echo: false
+
+cat('
+<div>
+<details>
+<summary style="cursor: pointer; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+Click to show/hide participant-specific details
+</summary>
+<div class="panel-tabset">
+')
+
+cat("\n\n#### Participant specific\n\n")
+
+for (id in unique_sids) {
+  cat("\n\n##### ", id, "\n\n")
+
+  print(
+    cycle_rt_summary |>
+      filter(ShortID == id) |>
+      select(-ShortID) |>
+      knitr::kable(
+        format = "markdown",
+        digits = 0
+      ) |>
+      kableExtra::kable_styling(full_width = FALSE, position = "left")
+
+  )
+  cat("\n\n")
+}
+
+cat('
+</div>
+</details>
+</div>
+')
+```
+
+### Trial Series for only Colors that are Rewarded or were Previously Rewarded Last Block
+
+#### within person z-scored
+
+```{r}
+#| echo: false
+#| label: reward-color-series
+#| fig-width: 30  # Increased width
+#| fig-height: 6  # Increased height
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+#| fig-scroll: true  # Enable horizontal scrolling
+#| fig-align: "left"  # Align to left for better scrolling
+
+
+rtc_series_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & Stimulus.ACC==1 & !is.na(rtc_trialnum)) |>
+  droplevels() |>
+  group_by(ShortID) |>
+  mutate(scaled_rt = scale(Stimulus.RT)) |>
+  ungroup() |>
+  group_by(Congruency, rtc_trialnum) |>
+  summarise(
+    mean = round(mean(scaled_rt, na.rm = TRUE), 3),
+    sd = round(sd(scaled_rt, na.rm = TRUE), 3),
+    n = n(), 
+    .groups = "drop"
+  ) |>
+  mutate(se = round(sd/sqrt(n), 3))
+
+shade_regions <- data.frame(
+  xmin = c(1, 36.51, 54.51, 90.51, 108.51, 144.51, 162.51, 198.51),
+  xmax = c(36.49, 54.49, 90.49, 108.49, 144.49, 162.49, 198.49, 216),
+  fill = c("paleturquoise1", "grey", "paleturquoise1", "grey",
+           "paleturquoise1", "grey", "paleturquoise1", "grey")
+)
+
+p <- ggplot(data = rtc_series_summary, aes(x = rtc_trialnum, y = mean,
+                                           color = Congruency, group = Congruency)) +
+  geom_rect(data = shade_regions,
+            aes(xmin = xmin, xmax = xmax,
+                ymin = -Inf, ymax = Inf,
+                fill = fill),
+            inherit.aes = FALSE,
+            alpha = 0.2) +
+  scale_fill_identity() +  # Use the fill colors as specified
+  geom_point(size = 3) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = mean - se, 
+                    ymax = mean + se),
+                width = 0.2) +
+  scale_color_manual(values = c("Congruent" = "lightgreen",
+                               "Incongruent" = "lightcoral")) +
+  scale_x_continuous(breaks = seq(0, max(rtc_series_summary$rtc_trialnum), by = 5)) +
+  labs(x = "Rewarded Trial Number",
+       y = "Reaction Time (scaled)",
+       title = "RT Series for only Rewarded Color by Congruency") +
+  theme_classic() +
+  theme(axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 12))
+
+ggsave(
+  filename = "rewarded_color_series.svg", 
+  plot = p,
+  device = "svg",
+  width = 30,  
+  height = 6,  
+  dpi = 300,   
+  bg = "white" 
+)
+
+rm(p) # clearing space
+
+
+rtc_stroop_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & Stimulus.ACC==1 & !is.na(rtc_trialnum)) |>
+  droplevels() |>
+  group_by(ShortID) |>
+  mutate(scaled_rt = scale(Stimulus.RT)) |>
+  ungroup() |>
+  # Pivot wider to get congruent and incongruent in separate columns
+  pivot_wider(
+    id_cols = c(ShortID, rtc_trialnum),
+    names_from = Congruency,
+    values_from = scaled_rt
+  ) |>
+  mutate(stroop = Incongruent - Congruent) |>
+  # Group by trial number to get means
+  group_by(rtc_trialnum) |>
+  summarise(
+    mean_stroop = round(mean(stroop, na.rm = TRUE), 3),
+    sd_stroop = round(sd(stroop, na.rm = TRUE), 3),
+    n = n(),
+    .groups = "drop"
+  ) |>
+  mutate(se_stroop = round(sd_stroop/sqrt(n), 3))
+
+
+rtc_stroop_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & Stimulus.ACC==1 & !is.na(rtc_trialnum)) |>
+  droplevels() |>
+  group_by(ShortID) |>
+  mutate(scaled_rt = scale(Stimulus.RT)) |>
+  ungroup() |>
+  group_by(Congruency, rtc_trialnum)|>
+  summarise(
+    mean_rt = round(mean(scaled_rt, na.rm=TRUE), 3),
+    .groups = "drop"
+  ) |>
+  pivot_wider(
+    id_cols = rtc_trialnum,
+    names_from = Congruency,
+    values_from = mean_rt
+  ) |>
+  mutate(stroop_scaled = Incongruent - Congruent)
+
+p <- ggplot(data = rtc_stroop_summary, aes(x = rtc_trialnum, y = stroop_scaled)) +
+  geom_rect(data = shade_regions,
+            aes(xmin = xmin, xmax = xmax,
+                ymin = -Inf, ymax = Inf,
+                fill = fill),
+            inherit.aes = FALSE,
+            alpha = 0.2) +
+  scale_fill_identity() +  # Use the fill colors as specified
+  geom_point(size = 3) +
+  geom_line(size = 1) +
+  scale_x_continuous(breaks = seq(0, max(rtc_stroop_summary$rtc_trialnum), by = 5)) +
+  labs(x = "Rewarded Trial Number",
+       y = "Stroop (scaled)",
+       title = "Stroop Series for only Rewarded Color") +
+  theme_classic() +
+  theme(axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 12))
+
+ggsave(
+  filename = "stroop_series.svg", 
+  plot = p,
+  device = "svg",
+  width = 30,  
+  height = 6,  
+  dpi = 300,   
+  bg = "white" 
+)
+
+rm(p)
+```
+
+\
+
+\
+
+![](rewarded_color_series.svg){.lightbox}
+
+![](stroop_series.svg){.lightbox}
+
+## Response Key Summaries
+
+```{r}
+#| results: asis
+#| echo: false
+
+response_digit_df <- data |>
+  filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
+  droplevels() |>
+  group_by(ShortID, Stimulus.RESP) |>
+  summarise(
+    mean_rt = mean(Stimulus.RT, na.rm = TRUE),
+    sd = sd(Stimulus.RT, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+
+cat("\n\n### Overall\n\n")
+print(
+  response_digit_df |>
+    group_by(Stimulus.RESP) |>
+    summarise(
+      means = round(mean(mean_rt, na.rm = TRUE)),
+      sd = sd(mean_rt, na.rm = TRUE),
+      n = n(),
+      .groups = "drop"
+      ) |>
+    knitr::kable(
+      format = "markdown",
+      digits = 0
+      ) |>
+    kableExtra::kable_styling(full_width = FALSE, position = "left")
+)
+
+cat('
+<div>
+<details>
+<summary style="cursor: pointer; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+Click to show/hide participant-specific details
+</summary>
+<div class="panel-tabset">
+')
+
+cat("\n\n### Participant specific\n\n")
+
+for (id in unique_sids) {
+  con_cutoff = cutoff_rts$rt_value[cutoff_rts$ShortID==id &
+                                     cutoff_rts$cutoff_type=="cutoff_cong"]
+  inc_cutoff = cutoff_rts$rt_value[cutoff_rts$ShortID==id &
+                                     cutoff_rts$cutoff_type=="cutoff_incong"]
+  cat("\n\n#### ", id, "\n", 
+      "con cutoff = ", con_cutoff, "inc cutoff = ", inc_cutoff ,"\n\n")
+  print(
+    response_digit_df |>
+      filter(ShortID == id) |>
+      select(-ShortID) |>
+      knitr::kable(
+        format = "markdown",
+        digits = 0
+      ) |>
+      kableExtra::kable_styling(full_width = FALSE, position = "left")
+    
+  )
+
+  cat("\n\n")
+}
+
+cat('
+</div>
+</details>
+</div>
+')
+  
+```
