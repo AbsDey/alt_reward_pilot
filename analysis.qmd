@@ -394,8 +394,8 @@ print(
 #| results: asis
 
 for (id in unique_sids) {
+  cat("<br>")
   cat(id)
-  
   print(
     ab_rt_summary |>
       filter(ShortID == id) |>
@@ -413,7 +413,7 @@ for (id in unique_sids) {
       kableExtra::kable_styling(full_width = FALSE, position = "left")
   )
 
-  cat("<br>")
+  
 }
 
 
@@ -470,8 +470,9 @@ print(
 #| results: asis
 
 for (id in unique_sids) {
+  
+  cat("<br>") 
   cat(id)
-  cat("<br>")  
   print(
     ab_err_summary |>
       filter(ShortID == id) |>
@@ -501,7 +502,7 @@ for (id in unique_sids) {
 ```{r}
 #| results: asis
 #| echo: false
-#| warnings: false
+#| warning: false
 #| fig-width: 9
 #| fig-height: 6
 #| dpi: 300
@@ -607,8 +608,9 @@ rm(p) # clearing space
 
 
 for (id in unique_sids) {
+  
+  cat("<br>")
   cat(id)
-
   print(
     cycle_rt_summary |>
       filter(ShortID == id) |>
@@ -620,7 +622,6 @@ for (id in unique_sids) {
       kableExtra::kable_styling(full_width = FALSE, position = "left")
 
   )
-  cat("<br>")
 }
 
 ```
@@ -724,6 +725,36 @@ rm(p) # clearing space
 ```
 
 ![](distractor_rewarded_cycle.svg){.lightbox style="margin-left: 0;"}
+
+::: {.callout-note collapse="true" appearance="minimal"}
+## Participant-specific averages
+
+```{r}
+#| results: asis
+#| echo: false
+#| warnings: false
+
+
+
+for (id in unique_sids) {
+  
+  cat("<br>")
+  cat(id)
+  print(
+    d_cycle_rt_summary |>
+      filter(ShortID == id) |>
+      select(-ShortID) |>
+      knitr::kable(
+        format = "markdown",
+        digits = 0
+      ) |>
+      kableExtra::kable_styling(full_width = FALSE, position = "left")
+
+  )
+  
+}
+
+```
 
 ### Trial Series: Color Item that was Rewarded or Rewarded Last Block
 
