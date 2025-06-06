@@ -42,7 +42,7 @@ unique_ids <- unique(df$ProlificID)
 short_id_len <- 7 # length of the short ID format
 df$ShortID <- substr(df$ProlificID, 1, short_id_len)
 unique_sids <- unique(df$ShortID)
-cat("added short ids to data... \n")
+cat("Added short IDs to data... \n")
 
 
 if(length(unique_ids) == length(unique_sids)){
@@ -56,9 +56,10 @@ if(length(unique_ids) == length(unique_sids)){
 cat(msg)
 ```
 
-::: {.callout-note collapse="true" appearance="minimal"}
+:::: {.callout-note collapse="true" appearance="minimal"}
 ## Minimal QC checks
-::: {.panel-tabset}
+
+::: panel-tabset
 #### Checking Overall Trial Counts
 
 ```{r}
@@ -95,14 +96,7 @@ cat(num_checks, "checks needed.")
 # cat('</div>')
 DT::datatable(trial_counts_df)
 
-
-
-
-
-
 ```
-
-
 
 #### Inspecting Trial Structure per Participant
 
@@ -141,6 +135,14 @@ for (id in unique_ids){
     df$rtc_trialnum[rtc_trial] = counter
   }
 }
+# 
+# sum(ifelse(df$BlockType=="RewardList" & df$Word==df$rewardedColor & df$Congruency=="Incongruent", 1, 0), na.rm=T)
+# 
+# peeking<-df|>
+#   filter(BlockType =="RewardList" & df$Word==df$rewardedColor)
+
+df$rewarded_distractor_identity <- as.factor(ifelse(df$Word==df$rewardedColor,
+                                                    "Yes", "No"))
 
 ```
 
@@ -248,12 +250,13 @@ ggsave(
 rm(p) # clearing space
 ```
 
-
 ![](participant_trial_structure.svg){.lightbox}
 :::
-:::
+::::
 
 ## Filters
+
+**Note:** Removed participant " 6837a5" due to them pressing any button as fast as possible (\<100 ms) during non-reward contexts
 
 ```{r}
 #| label: Filters
@@ -269,7 +272,7 @@ unique_ids <- unique(data$ProlificID)
 unique_sids <- unique(data$ShortID)
 ```
 
-## rt density plots
+## RT Density Plots
 
 ```{r}
 #| echo: false
@@ -341,7 +344,7 @@ rm(p) # clearing space
 
 ## Alternating Blocks
 
-### Reward x Congruency RT Summmaries
+### Reward Type x Congruency (all trials): RT
 
 ```{r}
 #| results: asis
@@ -368,6 +371,12 @@ print(
       n = n(),
       .groups = "drop"
       ) |>
+    rename(
+      "Rewarded Trial" = RewardTrial,
+      "Mean RT (ms)" = means,
+      "SD" = sd,
+      "N" = n
+    ) |>
     knitr::kable(
       format = "markdown",
       digits = 0
@@ -375,24 +384,28 @@ print(
     kableExtra::kable_styling(full_width = FALSE, position = "left")
 )
 
-cat('
-<div>
-<details>
-<summary style="cursor: pointer; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
-Click to show/hide participant-specific details
-</summary>
-<div class="panel-tabset">
-')
-# Participant specific content
-cat("\n\n#### Participant specific\n\n")
+```
+
+::: {.callout-note collapse="true" appearance="minimal"}
+## Participant-specific averages
+
+```{r}
+#| echo: false
+#| results: asis
 
 for (id in unique_sids) {
-  cat("\n\n##### ", id, "\n\n")
+  cat(id)
   
   print(
     ab_rt_summary |>
       filter(ShortID == id) |>
       select(-ShortID) |>
+      rename(
+      "Rewarded Trial" = RewardTrial,
+      "Mean RT (ms)" = mean_rt,
+      "SD" = sd_rt,
+      "N" = n
+    ) |>
       knitr::kable(
         format = "markdown",
         digits = 0
@@ -400,22 +413,18 @@ for (id in unique_sids) {
       kableExtra::kable_styling(full_width = FALSE, position = "left")
   )
 
-  cat("\n\n")
+  cat("<br>")
 }
 
 
-cat('
-</div>
-</details>
-</div>
-')
 ```
+:::
 
-### Reward x Congruency Error Rate Summmaries
+### Reward Type x Congruency (all trials): Errors
 
 ```{r}
-#| results: asis
 #| echo: false
+#| results: asis
 
 ab_err_summary <- data |>
   filter(!is.na(AlternatingBlocks)) |>
@@ -438,6 +447,12 @@ print(
       n = n(),
       .groups = "drop"
       ) |>
+    rename(
+      "Rewarded Trial" = RewardTrial,
+      "Mean Error" = means,
+      "SD" = sd,
+      "N" = n
+    ) |>
     knitr::kable(
       format = "markdown",
       digits = 3
@@ -445,25 +460,28 @@ print(
     kableExtra::kable_styling(full_width = FALSE, position = "left")
 )
 
-cat('
-<div>
-<details>
-<summary style="cursor: pointer; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
-Click to show/hide participant-specific details
-</summary>
-<div class="panel-tabset">
-')
+```
 
+::: {.callout-note collapse="true" appearance="minimal"}
+## Participant-specific averages
 
-cat("\n\n#### Participant specific\n\n")
+```{r}
+#| echo: false
+#| results: asis
 
 for (id in unique_sids) {
-  cat("\n\n##### ", id, "\n\n")
-  
+  cat(id)
+  cat("<br>")  
   print(
     ab_err_summary |>
       filter(ShortID == id) |>
       select(-ShortID) |>
+      rename(
+        "Rewarded Trial" = RewardTrial,
+        "Mean Error" = mean_err,
+        "SD" = sd_err,
+        "N" = n
+        ) |>
       knitr::kable(
         format = "markdown",
         digits = 3
@@ -472,21 +490,18 @@ for (id in unique_sids) {
     
   )
 
-  cat("\n\n")
+
 }
 
-cat('
-</div>
-</details>
-</div>
-')
 ```
+:::
 
-### Rewarded Color (by cycle) x Reward Block x Congruency RT Summmaries
+### Rewarded Color (by cycle) x Reward Block x Congruency: RT
 
 ```{r}
 #| results: asis
 #| echo: false
+#| warnings: false
 #| fig-width: 9
 #| fig-height: 6
 #| dpi: 300
@@ -504,11 +519,8 @@ cycle_rt_summary <- data |>
     .groups = "drop"
   ) |>
   mutate(BlockType = factor(BlockType, 
-                           levels = c("RewardList", "NoRewardList")))
-
-# cycle_rt_summary$BlockType <- factor(cycle_rt_summary$BlockType,
-#                                     levels = c("RewardList", "NoRewardList"),
-#                                     labels = c("Reward", "No Reward"))
+                           levels = c("RewardList", "NoRewardList"),
+                           labels = c("Reward Block", "No Reward Block")))
 
 cat("\n\n#### Overall\n\n")
 
@@ -523,49 +535,58 @@ cycle_rt_overall <- cycle_rt_summary |>
   mutate(se = round(sd/sqrt(n)))
 
 print(
-  cycle_rt_overall |> 
+  cycle_rt_overall |>
+    rename(
+      "Block Type" = BlockType,
+      "Color Rewarded (cycle)" = rewarded_this_cycle,
+      "Mean RT (ms)" = means,
+      "SD" = sd,
+      "N" = n
+      ) |>
     knitr::kable(
       format = "markdown",
       digits = 0) |>
     kableExtra::kable_styling(full_width = FALSE, position = "left")
 )
 
-
-
-p <- ggplot(data=cycle_rt_overall, aes(x=Congruency, y=means,
-                                  group=rewarded_this_cycle,
-                                  color=rewarded_this_cycle,
-                                  shape=rewarded_this_cycle))+
+p <- ggplot(cycle_rt_overall, aes(x=Congruency, y=means,
+             group=rewarded_this_cycle,
+             color=rewarded_this_cycle,
+             shape=rewarded_this_cycle)) +
   geom_point(size=3)+
   geom_line(size=1) +
   geom_errorbar(aes(ymin=means-se, ymax=means+se), width=.1) +
-  geom_text(aes(label=means), 
-          vjust=-1,
-          hjust=-.01,
-          size=3.5,
+  geom_text(aes(label=means, 
+                hjust=ifelse(Congruency=="Congruent", 1.5, -0.5)),
+          size=4,
           color = "black",
-          show.legend=FALSE) +  # Don't show in legend
+          show.legend=FALSE) +
   xlab("Trial Type") +
   ylab("Reaction Time (ms)") +
   facet_wrap(~BlockType) +
   scale_color_manual(
     values = c("Yes" = "turquoise3", "No" = "darkgrey")
   ) +
-  # coord_cartesian(ylim=c(580, 760))+
+  labs(color = "Color Rewarded (cycle)", shape = "Color Rewarded (cycle)") +
   theme_classic() +
-  theme(axis.title.x = element_text(size=14),
-        axis.title.y = element_text(size=14),
-        axis.text.x= element_text(size = 15, color = "black"),
-        axis.text.y= element_text(size = 15, color = "black"),
-        legend.title=element_text(size=14),
-        legend.text = element_text(size=14))
+  theme(axis.title.x = element_text(size=15),
+        axis.title.y = element_text(size=15),
+        axis.text.x = element_text(size = 15, color = "black"),
+        axis.text.y = element_text(size = 15, color = "black"),
+        legend.title = element_text(size=14),
+        legend.text = element_text(size=14),
+        legend.position = c(0.85, 0.25),
+        legend.background = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 15),
+        panel.border = element_rect(color = "black", fill = NA))
 
 ggsave(
   filename = "rewarded_cycle.svg", 
   plot = p,
   device = "svg",
-  width = 9,  
-  height = 6,  
+  width = 8,  
+  height = 5,  
   dpi = 300,   
   bg = "white" 
 )
@@ -573,25 +594,20 @@ ggsave(
 rm(p) # clearing space
 ```
 
-![](rewarded_cycle.svg){.lightbox}
+![](rewarded_cycle.svg){.lightbox style="margin-left: 0;"}
+
+::: {.callout-note collapse="true" appearance="minimal"}
+## Participant-specific averages
 
 ```{r}
 #| results: asis
 #| echo: false
+#| warnings: false
 
-cat('
-<div>
-<details>
-<summary style="cursor: pointer; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
-Click to show/hide participant-specific details
-</summary>
-<div class="panel-tabset">
-')
 
-cat("\n\n#### Participant specific\n\n")
 
 for (id in unique_sids) {
-  cat("\n\n##### ", id, "\n\n")
+  cat(id)
 
   print(
     cycle_rt_summary |>
@@ -604,17 +620,112 @@ for (id in unique_sids) {
       kableExtra::kable_styling(full_width = FALSE, position = "left")
 
   )
-  cat("\n\n")
+  cat("<br>")
 }
 
-cat('
-</div>
-</details>
-</div>
-')
+```
+:::
+
+### Distractor Identity Rewarded (by cycle) x Reward Block x Congruency: RT
+
+```{r}
+#| results: asis
+#| echo: false
+#| warnings: false
+#| fig-width: 9
+#| fig-height: 6
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+
+d_cycle_rt_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
+  droplevels() |>
+  group_by(ShortID, BlockType, rewarded_distractor_identity, Congruency) |>
+  summarise(
+    mean_rt = round(mean(Stimulus.RT, na.rm = TRUE)),
+    sd_rt = round(sd(Stimulus.RT, na.rm = TRUE)),
+    n = n(), 
+    .groups = "drop"
+  ) |>
+  mutate(BlockType = factor(BlockType, 
+                           levels = c("RewardList", "NoRewardList"),
+                           labels = c("Reward Block", "No Reward Block")))
+
+cat("\n\n#### Overall\n\n")
+
+d_cycle_rt_overall <- d_cycle_rt_summary |>
+  group_by(BlockType, rewarded_distractor_identity, Congruency) |>
+  summarise(
+    means = round(mean(mean_rt, na.rm = TRUE)),
+    sd = round(sd(mean_rt, na.rm = TRUE)),
+    n = n(),
+    .groups = "drop"
+    ) |>
+  mutate(se = round(sd/sqrt(n)))
+
+print(
+  d_cycle_rt_overall |>
+    rename(
+      "Block Type" = BlockType,
+      "Distractor Identity Rewarded (cycle)" = rewarded_distractor_identity,
+      "Mean RT (ms)" = means,
+      "SD" = sd,
+      "N" = n
+      ) |>
+    knitr::kable(
+      format = "markdown",
+      digits = 0) |>
+    kableExtra::kable_styling(full_width = FALSE, position = "left")
+)
+
+p <- ggplot(d_cycle_rt_overall, aes(x=Congruency, y=means,
+             group=rewarded_distractor_identity,
+             color=rewarded_distractor_identity,
+             shape=rewarded_distractor_identity)) +
+  geom_point(size=3)+
+  geom_line(size=1) +
+  geom_errorbar(aes(ymin=means-se, ymax=means+se), width=.1) +
+  geom_text(aes(label=means, 
+                hjust=ifelse(Congruency=="Congruent", 1.5, -0.5)),
+          size=4,
+          color = "black",
+          show.legend=FALSE) +
+  xlab("Trial Type") +
+  ylab("Reaction Time (ms)") +
+  facet_wrap(~BlockType) +
+  scale_color_manual(
+    values = c("Yes" = "turquoise3", "No" = "darkgrey")
+  ) +
+  labs(color = "Distractor Identity Rewarded (cycle)", shape = "Distractor Identity Rewarded (cycle)") +
+  theme_classic() +
+  theme(axis.title.x = element_text(size=15),
+        axis.title.y = element_text(size=15),
+        axis.text.x = element_text(size = 15, color = "black"),
+        axis.text.y = element_text(size = 15, color = "black"),
+        legend.title = element_text(size=14),
+        legend.text = element_text(size=14),
+        legend.position = c(0.77, 0.25),
+        legend.background = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 15),
+        panel.border = element_rect(color = "black", fill = NA))
+
+ggsave(
+  filename = "distractor_rewarded_cycle.svg", 
+  plot = p,
+  device = "svg",
+  width = 8,  
+  height = 5,  
+  dpi = 300,   
+  bg = "white" 
+)
+rm(p) # clearing space
 ```
 
-### Trial Series for only Colors that are Rewarded or were Previously Rewarded Last Block
+![](distractor_rewarded_cycle.svg){.lightbox style="margin-left: 0;"}
+
+### Trial Series: Color Item that was Rewarded or Rewarded Last Block
 
 #### within person z-scored
 
@@ -780,6 +891,12 @@ rm(p)
 
 ## Response Key Summaries
 
+:::: {.callout-note collapse="true" appearance="minimal"}
+## Mean RT by key pressed
+
+::: panel-tabset
+#### Average
+
 ```{r}
 #| results: asis
 #| echo: false
@@ -795,7 +912,7 @@ response_digit_df <- data |>
     .groups = "drop"
   )
 
-cat("\n\n### Overall\n\n")
+
 print(
   response_digit_df |>
     group_by(Stimulus.RESP) |>
@@ -811,25 +928,20 @@ print(
       ) |>
     kableExtra::kable_styling(full_width = FALSE, position = "left")
 )
+```
 
-cat('
-<div>
-<details>
-<summary style="cursor: pointer; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
-Click to show/hide participant-specific details
-</summary>
-<div class="panel-tabset">
-')
+#### Participant-specific
 
-cat("\n\n### Participant specific\n\n")
-
+```{r}
+#| results: asis
+#| echo: false
 for (id in unique_sids) {
   con_cutoff = cutoff_rts$rt_value[cutoff_rts$ShortID==id &
                                      cutoff_rts$cutoff_type=="cutoff_cong"]
   inc_cutoff = cutoff_rts$rt_value[cutoff_rts$ShortID==id &
                                      cutoff_rts$cutoff_type=="cutoff_incong"]
-  cat("\n\n#### ", id, "\n", 
-      "con cutoff = ", con_cutoff, "inc cutoff = ", inc_cutoff ,"\n\n")
+  cat("<br>")
+  cat("con cutoff = ", con_cutoff, "inc cutoff = ", inc_cutoff ,"\n\n")
   print(
     response_digit_df |>
       filter(ShortID == id) |>
@@ -845,10 +957,7 @@ for (id in unique_sids) {
   cat("\n\n")
 }
 
-cat('
-</div>
-</details>
-</div>
-')
   
 ```
+:::
+::::
