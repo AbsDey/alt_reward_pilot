@@ -25,8 +25,8 @@ library(lmerTest)
 library(psychReport)
 library(ggplot2)
 
-# data_path <- "C:/Users/deyne/Documents/WashU_Job/MURI_Position/Stroop Reward Task/data/"
-data_path <- "C:/Users/deyne/Desktop/ARS pilot/"
+data_path <- "C:/Users/deyne/Documents/WashU_Job/MURI_Position/Stroop Reward Task/data/"
+
 # knitr::opts_knit$set(root.dir = data_path)
 # # setwd(data_path) 
 ```
@@ -41,7 +41,7 @@ Participants go through learning, practice, and baseline blocks of Stroop stimul
 
 2.  Unrewarded blocks — No colors/trials are rewarded.
 
-Participants are given 4 cycles of alternating sequences of 1. and 2. above. Reward blocks always start at the begin of the cycle.
+Participants are given 4 cycles of alternating sequences of 1. and 2. above. Reward blocks always start at the beginning of the cycle.
 
 ------------------------------------------------------------------------
 
@@ -300,7 +300,7 @@ Here we're inspecting descriptives for only the alternating sequence of reward a
 ```{r}
 #| code-fold: true
 #| warning: false
-#| label: RT-distributions
+#| label: RT-distributions-alternating-blocks
 #| fig-width: 18
 #| fig-height: 18
 #| dpi: 300
@@ -372,6 +372,7 @@ rm(p) # clearing space
 ```{r}
 #| results: asis
 #| echo: false
+#| label: overall-reward-trial-means-rt
 
 ab_rt_summary <- data |>
   filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
@@ -416,6 +417,7 @@ print(
 ```{r}
 #| echo: false
 #| results: asis
+#| label: participant-reward-trial-means-rt
 
 for (id in unique_sids) {
   cat("<br>")
@@ -451,6 +453,7 @@ for (id in unique_sids) {
 ```{r}
 #| echo: false
 #| results: asis
+#| label: overall-reward-trial-means-err
 
 ab_err_summary <- data |>
   filter(!is.na(AlternatingBlocks)) |>
@@ -495,6 +498,7 @@ print(
 ```{r}
 #| echo: false
 #| results: asis
+#| label: participant-reward-trial-means-err
 
 for (id in unique_sids) {
   
@@ -537,6 +541,7 @@ for (id in unique_sids) {
 #| dpi: 300
 #| fig-format: "svg"
 #| fig-retina: 2
+#| label: overall-color-reward-means
 
 cycle_rt_summary <- data |>
   filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
@@ -635,6 +640,7 @@ rm(p) # clearing space
 #| results: asis
 #| echo: false
 #| warnings: false
+#| label: participant-color-reward-means
 
 
 
@@ -671,6 +677,7 @@ for (id in unique_sids) {
 #| dpi: 300
 #| fig-format: "svg"
 #| fig-retina: 2
+#| label: overall-distractor-identity-reward-means
 
 d_cycle_rt_summary <- data |>
   filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
@@ -769,6 +776,7 @@ rm(p) # clearing space
 #| results: asis
 #| echo: false
 #| warnings: false
+#| label: participant-distractor-identity-reward-means
 
 
 
@@ -835,8 +843,9 @@ shade_regions <- data.frame(
            "paleturquoise1", "grey", "paleturquoise1", "grey")
 )
 
-p <- ggplot(data = rtc_series_summary, aes(x = rtc_trialnum, y = mean,
-                                           color = Congruency, group = Congruency)) +
+p <- ggplot(data = rtc_series_summary,
+            aes(x = rtc_trialnum, y = mean,
+                color = Congruency, group = Congruency)) +
   geom_rect(data = shade_regions,
             aes(xmin = xmin, xmax = xmax,
                 ymin = -Inf, ymax = Inf,
@@ -880,29 +889,22 @@ ggsave(
 )
 
 rm(p) # clearing space
+```
 
+![Note. We z-scored within participants since, for a given trial, a participant can only encounter either a congurent stimulus *or* an incongruent stimulus. Because trial order effects may vary based on general processing speed RT, scaling allows for a more representative trial series when collapsing across partcipants.](rewarded_color_series.svg){.lightbox}
 
-rtc_stroop_summary <- data |>
-  filter(!is.na(AlternatingBlocks) & Stimulus.ACC==1 & !is.na(rtc_trialnum)) |>
-  droplevels() |>
-  group_by(ShortID) |>
-  mutate(scaled_rt = scale(Stimulus.RT)) |>
-  ungroup() |>
-  pivot_wider(
-    id_cols = c(ShortID, rtc_trialnum),
-    names_from = Congruency,
-    values_from = scaled_rt
-  ) |>
-  mutate(stroop = Incongruent - Congruent) |>
-  group_by(rtc_trialnum) |>
-  summarise(
-    mean_stroop = round(mean(stroop, na.rm = TRUE), 3),
-    sd_stroop = round(sd(stroop, na.rm = TRUE), 3),
-    n = n(),
-    .groups = "drop"
-  ) |>
-  mutate(se_stroop = round(sd_stroop/sqrt(n), 3))
+<br>
 
+```{r}
+#| code-fold: true
+#| label: reward-color-stroop-series
+#| fig-width: 30  # Increased width
+#| fig-height: 6  # Increased height
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+#| fig-scroll: true  # Enable horizontal scrolling
+#| fig-align: "left"  # Align to left for better scrolling
 
 rtc_stroop_summary <- data |>
   filter(!is.na(AlternatingBlocks) & Stimulus.ACC==1 & !is.na(rtc_trialnum)) |>
@@ -959,11 +961,7 @@ ggsave(
 rm(p)
 ```
 
-![Note. We z-scored within participants since a participant can only encounter either a congurent or incongruent stimuli for each trial a reward was available. Because we cannot take a within person difference at each trial number, this allows for a more representative comparison between reward and no reward block RTs.](rewarded_color_series.svg){.lightbox}
-
-<br>
-
-![Note. We take the difference between incongruent and congruent z-scored RTs. Values above the the dashed line indicate a (positive) Stroop effect. Values below the dashed line indicate a reverse (negative) Stroop effect.](stroop_series.svg){.lightbox}
+![Note. We take the difference between incongruent and congruent z-scored RTs. A within-participant difference at a given trial cannot be computed due to the reason noted in the raw RT series. As such the "Stroop" effect here is a between-participant difference at each trial. Values above the the dashed line indicate a (positive) "Stroop" effect. Values below the dashed line indicate a reverse (negative) "Stroop" effect.](stroop_series.svg){.lightbox}
 
 ------------------------------------------------------------------------
 
@@ -980,6 +978,7 @@ rm(p)
 ```{r}
 #| results: asis
 #| echo: false
+#| label: overall-response-key-means
 
 response_digit_df <- data |>
   filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
@@ -1015,6 +1014,8 @@ print(
 ```{r}
 #| results: asis
 #| echo: false
+#| label: participant-response-key-means
+
 for (id in unique_sids) {
   con_cutoff = cutoff_rts$rt_value[cutoff_rts$ShortID==id &
                                      cutoff_rts$cutoff_type=="cutoff_cong"]
