@@ -726,7 +726,7 @@ rm(p) # clearing space
 
 ![](distractor_rewarded_cycle.svg){.lightbox style="margin-left: 0;"}
 
-::: {.callout-note collapse="true" appearance="minimal"}
+::::: {.callout-note collapse="true" appearance="minimal"}
 ## Participant-specific averages
 
 ```{r}
@@ -755,6 +755,8 @@ for (id in unique_sids) {
 }
 
 ```
+
+:::
 
 ### Trial Series: Color Item that was Rewarded or Rewarded Last Block
 
@@ -912,13 +914,16 @@ ggsave(
 rm(p)
 ```
 
-\
 
-\
 
 ![](rewarded_color_series.svg){.lightbox}
 
+<br>
+<br>
+
 ![](stroop_series.svg){.lightbox}
+<br>
+<br>
 
 ## Response Key Summaries
 
