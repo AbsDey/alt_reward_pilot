@@ -28,7 +28,6 @@ library(psychReport)
 library(ggplot2)
 
 data_path <- "C:/Users/deyne/Documents/WashU_Job/MURI_Position/Stroop Reward Task/data/"
-
 # knitr::opts_knit$set(root.dir = data_path)
 # # setwd(data_path) 
 ```
@@ -85,7 +84,7 @@ cat(msg)
 ```
 
 :::: {.callout-note collapse="true" appearance="minimal"}
-## Minimal QC checks
+### Minimal QC checks
 
 ::: panel-tabset
 #### Checking Overall Trial Counts
@@ -95,7 +94,7 @@ cat(msg)
 #| label: trial_count_check
 #| results: asis
 
-expected_count <- 1056 # minnimum count, multiple learning tries will increase this count
+expected_count <- 1056 # minimum count, multiple learning tries will increase this count
 experiment_expected_count <- 1008 # maximum number of trials combining baseline and alternating blocks
 
 trial_counts_df <- data.frame(
@@ -460,7 +459,7 @@ for (id in unique_sids) {
 
 <br>
 
-### Reward Type x Congruency (collapsed blocks): Errors
+### Trial Rewarded (collapsed blocks) x Congruency: Errors
 
 ```{r}
 #| echo: false
@@ -542,7 +541,7 @@ for (id in unique_sids) {
 
 <br>
 
-### Rewarded Color (across cycles) x Reward Block x Congruency: RT
+### Color Rewarded (across cycle) x Reward Block x Congruency: RT
 
 ```{r}
 #| results: asis
@@ -678,7 +677,7 @@ for (id in unique_sids) {
 
 <br>
 
-### Distractor Identity Rewarded (across cycles) x Reward Block x Congruency: RT
+### Distractor Identity Rewarded (across cycle) x Reward Block x Congruency: RT
 
 ```{r}
 #| results: asis
@@ -815,7 +814,7 @@ for (id in unique_sids) {
 
 <br>
 
-### Trial Series': RT and Stroop
+### Trial Series: RT and Stroop
 
 #### Color Item that was rewarded or previously rewarded in the last reward block
 
