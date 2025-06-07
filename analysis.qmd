@@ -10,6 +10,8 @@ output-file: index.html
 editor: visual
 ---
 
+Created by Abs Dey 06-04-2025
+
 ```{r}
 #| label: setup
 #| include: false
@@ -35,6 +37,12 @@ data_path <- "C:/Users/deyne/Documents/WashU_Job/MURI_Position/Stroop Reward Tas
 
 ## Basic Design
 
+<br>
+
+![](design.svg){.lightbox}
+
+<br>
+
 Participants go through learning, practice, and baseline blocks of Stroop stimuli. Following this, they go through two types of Stroop blocks:
 
 1.  Rewarded blocks — A specific color item is rewarded
@@ -44,6 +52,10 @@ Participants go through learning, practice, and baseline blocks of Stroop stimul
 Participants are given 4 cycles of alternating sequences of 1. and 2. above. Reward blocks always start at the beginning of the cycle.
 
 ------------------------------------------------------------------------
+
+<br>
+
+## Preliminaries
 
 ```{r}
 #| echo: false
