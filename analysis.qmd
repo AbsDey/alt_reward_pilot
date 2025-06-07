@@ -25,10 +25,25 @@ library(lmerTest)
 library(psychReport)
 library(ggplot2)
 
-data_path <- "C:/Users/deyne/Documents/WashU_Job/MURI_Position/Stroop Reward Task/data/"
+# data_path <- "C:/Users/deyne/Documents/WashU_Job/MURI_Position/Stroop Reward Task/data/"
+data_path <- "C:/Users/deyne/Desktop/ARS pilot/"
 # knitr::opts_knit$set(root.dir = data_path)
 # # setwd(data_path) 
 ```
+
+<br>
+
+## Basic Design
+
+Participants go through learning, practice, and baseline blocks of Stroop stimuli. Following this, they go through two types of Stroop blocks:
+
+1.  Rewarded blocks — A specific color item is rewarded
+
+2.  Unrewarded blocks — No colors/trials are rewarded.
+
+Participants are given 4 cycles of alternating sequences of 1. and 2. above. Reward blocks always start at the begin of the cycle.
+
+<br>
 
 ```{r}
 #| echo: false
@@ -42,19 +57,22 @@ unique_ids <- unique(df$ProlificID)
 short_id_len <- 7 # length of the short ID format
 df$ShortID <- substr(df$ProlificID, 1, short_id_len)
 unique_sids <- unique(df$ShortID)
-cat("Added short IDs to data... \n")
+cat("Added short IDs to data...")
 
 
 if(length(unique_ids) == length(unique_sids)){
-  msg = paste("ID formats match in number", length(unique_sids), ".\n\n")
+  msg = paste("Long and short format IDs match in number(",
+              length(unique_sids), ").\n\n", sep="")
 } else{
   msg = paste("**WARNING**: ID formats do not match in number (long = ",
   length(unique_ids), "; short = ", length(unique_sids),
-  ").\nConsider increasing the length of the short ID format.\n", sep="")
+  ").\nConsider increasing the length of the short ID format if two long IDs are similar.\n", sep="")
 }
 
 cat(msg)
 ```
+
+<br>
 
 :::: {.callout-note collapse="true" appearance="minimal"}
 ## Minimal QC checks
@@ -209,7 +227,6 @@ p <- ggplot(df[df$data_exists, ], aes(x = joint_trial_num)) +
     alpha = 0.2
   ) +
   scale_fill_manual(values = fill_colors) +
-  # geom_point(aes(y = (Stimulus.RT/1000), color = Congruency, alpha = rewarded_this_cycle)) +
   geom_linerange(aes(ymin = (Stimulus.RT/1000)-pad_line, ymax = (Stimulus.RT/1000)+pad_line,
                      color = Congruency, alpha = rewarded_this_cycle), size = 0.5) +
   scale_color_manual(values = congruency_colors) +
@@ -227,8 +244,8 @@ p <- ggplot(df[df$data_exists, ], aes(x = joint_trial_num)) +
   scale_alpha_manual(values = reward_alpha, na.value = 0.5) +
   scale_x_continuous(
     limits = c(1, max(df$joint_trial_num, na.rm = T)+1), # adding extra trial so shading can work
-    breaks = seq(72, max(df$joint_trial_num, na.rm = T), by = 72) # 72 is 1/2 block length
-  ) +
+    breaks = seq(72, max(df$joint_trial_num, na.rm = T), by = 72), # 72 is 1/2 block length
+    expand = c(0.01,10)) +
   scale_y_continuous(limits = c(0, 3)) +
   facet_wrap(~ ShortID, scales = "free_x", ncol = 2) +
   theme_minimal() +
@@ -250,13 +267,15 @@ ggsave(
 rm(p) # clearing space
 ```
 
-![](participant_trial_structure.svg){.lightbox}
+![Note. For each participant, we plot the RT for every trial during the experimenal phase of the study. That is, all trials excluding those in the Learning and Practice blocks are included. For a given trial, participants' RT is indicated by the position of the midpoint of a dash. Green dashes indicate congruent trials. Red dashes indicate incongruent trials. The section with white background at the start of each trial series is a baseline block. The turquoise background is a reward block, and the gray background is a no reward block.](participant_trial_structure.svg){.lightbox}
 :::
 ::::
 
+<br>
+
 ## Filters
 
-**Note:** Removed participant " 6837a5" due to them pressing any button as fast as possible (\<100 ms) during non-reward contexts
+**Note:** Removed participant " 6837a5" due to them pressing any button as fast as possible (\<100 ms) during non-reward contexts (see QC trial structure checks).
 
 ```{r}
 #| label: Filters
@@ -271,6 +290,8 @@ data <- df |>
 unique_ids <- unique(data$ProlificID)
 unique_sids <- unique(data$ShortID)
 ```
+
+<br><br>
 
 ## RT Density Plots
 
@@ -340,11 +361,17 @@ ggsave(
 rm(p) # clearing space
 ```
 
-![](participant_rt_dist.svg){.lightbox}
+![Note. Only accurate RTs are shown here. Green dashed lines indicate a participant's cutoff RT for congruent trials. Red dashed lines indicate their cutoff RT for incongruent trials. Cutoffs were based on their performance during a baseline block and were set to their median RT for a congruent/incongruent trial type.](participant_rt_dist.svg){.lightbox}
+
+<br>
 
 ## Alternating Blocks
 
-### Reward Type x Congruency (all trials): RT
+Here we're inspecting descriptives for only the alternating sequence of reward and no reward blocks. That is, we don't look at Learning, Practice, or Baseline blocks.
+
+<br>
+
+### Reward Type x Congruency (collapsed blocks): RT
 
 ```{r}
 #| results: asis
@@ -420,7 +447,9 @@ for (id in unique_sids) {
 ```
 :::
 
-### Reward Type x Congruency (all trials): Errors
+<br>
+
+### Reward Type x Congruency (collapsed blocks): Errors
 
 ```{r}
 #| echo: false
@@ -497,7 +526,9 @@ for (id in unique_sids) {
 ```
 :::
 
-### Rewarded Color (by cycle) x Reward Block x Congruency: RT
+<br><br>
+
+### Rewarded Color (across cycles) x Reward Block x Congruency: RT
 
 ```{r}
 #| results: asis
@@ -549,6 +580,7 @@ print(
       digits = 0) |>
     kableExtra::kable_styling(full_width = FALSE, position = "left")
 )
+cat("<br>")
 
 p <- ggplot(cycle_rt_overall, aes(x=Congruency, y=means,
              group=rewarded_this_cycle,
@@ -564,6 +596,7 @@ p <- ggplot(cycle_rt_overall, aes(x=Congruency, y=means,
           show.legend=FALSE) +
   xlab("Trial Type") +
   ylab("Reaction Time (ms)") +
+  ylim(c(440, 810)) +
   facet_wrap(~BlockType) +
   scale_color_manual(
     values = c("Yes" = "turquoise3", "No" = "darkgrey")
@@ -627,7 +660,9 @@ for (id in unique_sids) {
 ```
 :::
 
-### Distractor Identity Rewarded (by cycle) x Reward Block x Congruency: RT
+<br>
+
+### Distractor Identity Rewarded (across cycles) x Reward Block x Congruency: RT
 
 ```{r}
 #| results: asis
@@ -680,12 +715,14 @@ print(
     kableExtra::kable_styling(full_width = FALSE, position = "left")
 )
 
+cat("<br>")
+
 p <- ggplot(d_cycle_rt_overall, aes(x=Congruency, y=means,
              group=rewarded_distractor_identity,
              color=rewarded_distractor_identity,
              shape=rewarded_distractor_identity)) +
   geom_point(size=3)+
-  geom_line(size=1) +
+  geom_line(size=1, linetype=2) +
   geom_errorbar(aes(ymin=means-se, ymax=means+se), width=.1) +
   geom_text(aes(label=means, 
                 hjust=ifelse(Congruency=="Congruent", 1.5, -0.5)),
@@ -694,6 +731,7 @@ p <- ggplot(d_cycle_rt_overall, aes(x=Congruency, y=means,
           show.legend=FALSE) +
   xlab("Trial Type") +
   ylab("Reaction Time (ms)") +
+  ylim(c(440, 810)) +
   facet_wrap(~BlockType) +
   scale_color_manual(
     values = c("Yes" = "turquoise3", "No" = "darkgrey")
@@ -726,7 +764,7 @@ rm(p) # clearing space
 
 ![](distractor_rewarded_cycle.svg){.lightbox style="margin-left: 0;"}
 
-::::: {.callout-note collapse="true" appearance="minimal"}
+::: {.callout-note collapse="true" appearance="minimal"}
 ## Participant-specific averages
 
 ```{r}
@@ -755,12 +793,15 @@ for (id in unique_sids) {
 }
 
 ```
-
 :::
 
-### Trial Series: Color Item that was Rewarded or Rewarded Last Block
+<br>
 
-#### within person z-scored
+### Trial Series': RT and Stroop
+
+#### Color Item that was rewarded or previously rewarded in the last reward block
+
+<br>
 
 ```{r}
 #| echo: false
@@ -812,17 +853,23 @@ p <- ggplot(data = rtc_series_summary, aes(x = rtc_trialnum, y = mean,
                 width = 0.2) +
   scale_color_manual(values = c("Congruent" = "lightgreen",
                                "Incongruent" = "lightcoral")) +
-  scale_x_continuous(breaks = seq(0, max(rtc_series_summary$rtc_trialnum), by = 5)) +
+  scale_x_continuous(breaks = seq(0, max(rtc_series_summary$rtc_trialnum),
+                                  by = 5), expand = c(0,0)) +
   labs(x = "Rewarded Trial Number",
        y = "Reaction Time (scaled)",
-       title = "RT Series for only Rewarded Color by Congruency") +
+       title = "RT Series for only Rewarded Colors by Congruency") +
+  ylim(c(-2.5, 2.5)) +
   theme_classic() +
-  theme(axis.title.x = element_text(size = 14),
-        axis.title.y = element_text(size = 14),
-        axis.text.x = element_text(size = 12),
-        axis.text.y = element_text(size = 12),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12))
+  theme(axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        legend.title = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.background = element_blank(),
+        legend.key = element_blank(),
+        legend.position = c(.96, .15),
+        plot.title = element_text(size = 28))
 
 ggsave(
   filename = "rewarded_color_series.svg", 
@@ -843,14 +890,12 @@ rtc_stroop_summary <- data |>
   group_by(ShortID) |>
   mutate(scaled_rt = scale(Stimulus.RT)) |>
   ungroup() |>
-  # Pivot wider to get congruent and incongruent in separate columns
   pivot_wider(
     id_cols = c(ShortID, rtc_trialnum),
     names_from = Congruency,
     values_from = scaled_rt
   ) |>
   mutate(stroop = Incongruent - Congruent) |>
-  # Group by trial number to get means
   group_by(rtc_trialnum) |>
   summarise(
     mean_stroop = round(mean(stroop, na.rm = TRUE), 3),
@@ -889,17 +934,18 @@ p <- ggplot(data = rtc_stroop_summary, aes(x = rtc_trialnum, y = stroop_scaled))
   scale_fill_identity() +  # Use the fill colors as specified
   geom_point(size = 3) +
   geom_line(size = 1) +
-  scale_x_continuous(breaks = seq(0, max(rtc_stroop_summary$rtc_trialnum), by = 5)) +
+  scale_x_continuous(breaks = seq(0, max(rtc_stroop_summary$rtc_trialnum),
+                                  by = 5), expand = c(0,0)) +
   labs(x = "Rewarded Trial Number",
        y = "Stroop (scaled)",
-       title = "Stroop Series for only Rewarded Color") +
+       title = "Stroop Series for only Rewarded Colors") +
+  ylim(c(-2.5, 2.5)) +
   theme_classic() +
-  theme(axis.title.x = element_text(size = 14),
-        axis.title.y = element_text(size = 14),
-        axis.text.x = element_text(size = 12),
-        axis.text.y = element_text(size = 12),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12))
+  theme(axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 28))
 
 ggsave(
   filename = "stroop_series.svg", 
@@ -914,15 +960,12 @@ ggsave(
 rm(p)
 ```
 
-
-
-![](rewarded_color_series.svg){.lightbox}
+![Note. We z-scored within participants since a participant can only encounter either a congurent or incongruent stimuli for each trial a reward was available. Because we cannot take a within person difference at each trial number, this allows for a more representative comparison between reward and no reward block RTs.](rewarded_color_series.svg){.lightbox}
 
 <br>
-<br>
 
-![](stroop_series.svg){.lightbox}
-<br>
+![Note. We take the difference between incongruent and congruent z-scored RTs.](stroop_series.svg){.lightbox}
+
 <br>
 
 ## Response Key Summaries
@@ -931,7 +974,7 @@ rm(p)
 ## Mean RT by key pressed
 
 ::: panel-tabset
-#### Average
+#### Overall
 
 ```{r}
 #| results: asis
@@ -977,7 +1020,8 @@ for (id in unique_sids) {
   inc_cutoff = cutoff_rts$rt_value[cutoff_rts$ShortID==id &
                                      cutoff_rts$cutoff_type=="cutoff_incong"]
   cat("<br>")
-  cat("con cutoff = ", con_cutoff, "inc cutoff = ", inc_cutoff ,"\n\n")
+  cat("\n",id,"\n")
+  cat("<br>")
   print(
     response_digit_df |>
       filter(ShortID == id) |>
@@ -989,8 +1033,10 @@ for (id in unique_sids) {
       kableExtra::kable_styling(full_width = FALSE, position = "left")
     
   )
-
-  cat("\n\n")
+  cat("Note. Congruent trial RT cutoff = ", con_cutoff,
+      " Incongruent trial RT cutoff = ", inc_cutoff, ".")
+  cat("<br>")
+  cat("\n<br>")
 }
 
   
