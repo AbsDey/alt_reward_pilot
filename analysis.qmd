@@ -43,7 +43,7 @@ Participants go through learning, practice, and baseline blocks of Stroop stimul
 
 Participants are given 4 cycles of alternating sequences of 1. and 2. above. Reward blocks always start at the begin of the cycle.
 
-<br>
+------------------------------------------------------------------------
 
 ```{r}
 #| echo: false
@@ -71,8 +71,6 @@ if(length(unique_ids) == length(unique_sids)){
 
 cat(msg)
 ```
-
-<br>
 
 :::: {.callout-note collapse="true" appearance="minimal"}
 ## Minimal QC checks
@@ -153,14 +151,10 @@ for (id in unique_ids){
     df$rtc_trialnum[rtc_trial] = counter
   }
 }
-# 
-# sum(ifelse(df$BlockType=="RewardList" & df$Word==df$rewardedColor & df$Congruency=="Incongruent", 1, 0), na.rm=T)
-# 
-# peeking<-df|>
-#   filter(BlockType =="RewardList" & df$Word==df$rewardedColor)
 
-df$rewarded_distractor_identity <- as.factor(ifelse(df$Word==df$rewardedColor,
-                                                    "Yes", "No"))
+df$rewarded_distractor_identity <- as.factor(
+  ifelse(df$Word==df$rewardedColor,"Yes", "No")
+  )
 
 ```
 
@@ -291,12 +285,20 @@ unique_ids <- unique(data$ProlificID)
 unique_sids <- unique(data$ShortID)
 ```
 
-<br><br>
+------------------------------------------------------------------------
 
-## RT Density Plots
+<br>
+
+## Alternating Blocks
+
+Here we're inspecting descriptives for only the alternating sequence of reward and no reward blocks. That is, we don't look at Learning, Practice, or Baseline blocks.
+
+<br>
+
+### RT Density Plots
 
 ```{r}
-#| echo: false
+#| code-fold: true
 #| warning: false
 #| label: RT-distributions
 #| fig-width: 18
@@ -365,12 +367,6 @@ rm(p) # clearing space
 
 <br>
 
-## Alternating Blocks
-
-Here we're inspecting descriptives for only the alternating sequence of reward and no reward blocks. That is, we don't look at Learning, Practice, or Baseline blocks.
-
-<br>
-
 ### Reward Type x Congruency (collapsed blocks): RT
 
 ```{r}
@@ -389,6 +385,7 @@ ab_rt_summary <- data |>
   )
 
 cat("\n\n#### Overall\n\n")
+
 print(
   ab_rt_summary |>
     group_by(RewardTrial, Congruency) |>
@@ -414,7 +411,7 @@ print(
 ```
 
 ::: {.callout-note collapse="true" appearance="minimal"}
-## Participant-specific averages
+#### Participant-specific averages
 
 ```{r}
 #| echo: false
@@ -467,6 +464,7 @@ ab_err_summary <- data |>
   )
 
 cat("\n\n#### Overall\n\n")
+
 print(
   ab_err_summary |>
     group_by(RewardTrial, Congruency) |>
@@ -492,7 +490,7 @@ print(
 ```
 
 ::: {.callout-note collapse="true" appearance="minimal"}
-## Participant-specific averages
+#### Participant-specific averages
 
 ```{r}
 #| echo: false
@@ -526,7 +524,7 @@ for (id in unique_sids) {
 ```
 :::
 
-<br><br>
+<br>
 
 ### Rewarded Color (across cycles) x Reward Block x Congruency: RT
 
@@ -631,7 +629,7 @@ rm(p) # clearing space
 ![](rewarded_cycle.svg){.lightbox style="margin-left: 0;"}
 
 ::: {.callout-note collapse="true" appearance="minimal"}
-## Participant-specific averages
+#### Participant-specific averages
 
 ```{r}
 #| results: asis
@@ -765,7 +763,7 @@ rm(p) # clearing space
 ![](distractor_rewarded_cycle.svg){.lightbox style="margin-left: 0;"}
 
 ::: {.callout-note collapse="true" appearance="minimal"}
-## Participant-specific averages
+#### Participant-specific averages
 
 ```{r}
 #| results: asis
@@ -804,7 +802,7 @@ for (id in unique_sids) {
 <br>
 
 ```{r}
-#| echo: false
+#| code-fold: true
 #| label: reward-color-series
 #| fig-width: 30  # Increased width
 #| fig-height: 6  # Increased height
@@ -934,6 +932,7 @@ p <- ggplot(data = rtc_stroop_summary, aes(x = rtc_trialnum, y = stroop_scaled))
   scale_fill_identity() +  # Use the fill colors as specified
   geom_point(size = 3) +
   geom_line(size = 1) +
+  geom_hline(yintercept=0, linetype=2, size=1, color = "tomato3") +
   scale_x_continuous(breaks = seq(0, max(rtc_stroop_summary$rtc_trialnum),
                                   by = 5), expand = c(0,0)) +
   labs(x = "Rewarded Trial Number",
@@ -964,14 +963,16 @@ rm(p)
 
 <br>
 
-![Note. We take the difference between incongruent and congruent z-scored RTs.](stroop_series.svg){.lightbox}
+![Note. We take the difference between incongruent and congruent z-scored RTs. Values above the the dashed line indicate a (positive) Stroop effect. Values below the dashed line indicate a reverse (negative) Stroop effect.](stroop_series.svg){.lightbox}
+
+------------------------------------------------------------------------
 
 <br>
 
 ## Response Key Summaries
 
 :::: {.callout-note collapse="true" appearance="minimal"}
-## Mean RT by key pressed
+### Mean RT by key pressed
 
 ::: panel-tabset
 #### Overall
