@@ -378,7 +378,7 @@ rm(p) # clearing space
 
 <br>
 
-### Reward Type x Congruency (collapsed blocks): RT
+### Trial Rewarded x Congruency (collapsed blocks): RT
 
 ```{r}
 #| results: asis
