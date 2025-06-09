@@ -134,17 +134,17 @@
 <polyline points='49.35,48.52 52.09,48.52 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
 <text x='311.30' y='351.36' text-anchor='middle' style='font-size: 15.00px; font-family: "Arial";' textLength='65.02px' lengthAdjust='spacingAndGlyphs'>Trial Type</text>
 <text transform='translate(16.22,173.60) rotate(-90)' text-anchor='middle' style='font-size: 15.00px; font-family: "Arial";' textLength='130.05px' lengthAdjust='spacingAndGlyphs'>Reaction Time (ms)</text>
-<text x='340.45' y='231.31' style='font-size: 14.00px; font-family: "Arial";' textLength='221.66px' lengthAdjust='spacingAndGlyphs'>Distractor Identity Rewarded (cycle)</text>
-<rect x='340.45' y='238.26' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='349.09' cy='246.90' r='3.56' style='stroke-width: 0.71; stroke: none; fill: #A9A9A9;' />
-<line x1='342.18' y1='246.90' x2='356.00' y2='246.90' style='stroke-width: 2.13; stroke: #A9A9A9; stroke-dasharray: 11.38,11.38; stroke-linecap: butt;' />
-<line x1='342.18' y1='246.90' x2='356.00' y2='246.90' style='stroke-width: 1.07; stroke: #A9A9A9; stroke-linecap: butt;' />
-<rect x='340.45' y='255.54' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<polygon points='349.09,258.65 353.88,266.95 344.30,266.95 ' style='stroke-width: 0.71; stroke: none; fill: #00C5CD;' />
-<line x1='342.18' y1='264.18' x2='356.00' y2='264.18' style='stroke-width: 2.13; stroke: #00C5CD; stroke-dasharray: 11.38,11.38; stroke-linecap: butt;' />
-<line x1='342.18' y1='264.18' x2='356.00' y2='264.18' style='stroke-width: 1.07; stroke: #00C5CD; stroke-linecap: butt;' />
-<text x='363.21' y='251.91' style='font-size: 14.00px; font-family: "Arial";' textLength='17.89px' lengthAdjust='spacingAndGlyphs'>No</text>
-<text x='363.21' y='269.19' style='font-size: 14.00px; font-family: "Arial";' textLength='22.84px' lengthAdjust='spacingAndGlyphs'>Yes</text>
+<text x='353.80' y='231.31' style='font-size: 14.00px; font-family: "Arial";' textLength='194.97px' lengthAdjust='spacingAndGlyphs'>Word Identity Rewarded (cycle)</text>
+<rect x='353.80' y='238.26' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='362.44' cy='246.90' r='3.56' style='stroke-width: 0.71; stroke: none; fill: #A9A9A9;' />
+<line x1='355.52' y1='246.90' x2='369.35' y2='246.90' style='stroke-width: 2.13; stroke: #A9A9A9; stroke-dasharray: 11.38,11.38; stroke-linecap: butt;' />
+<line x1='355.52' y1='246.90' x2='369.35' y2='246.90' style='stroke-width: 1.07; stroke: #A9A9A9; stroke-linecap: butt;' />
+<rect x='353.80' y='255.54' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<polygon points='362.44,258.65 367.22,266.95 357.65,266.95 ' style='stroke-width: 0.71; stroke: none; fill: #00C5CD;' />
+<line x1='355.52' y1='264.18' x2='369.35' y2='264.18' style='stroke-width: 2.13; stroke: #00C5CD; stroke-dasharray: 11.38,11.38; stroke-linecap: butt;' />
+<line x1='355.52' y1='264.18' x2='369.35' y2='264.18' style='stroke-width: 1.07; stroke: #00C5CD; stroke-linecap: butt;' />
+<text x='376.56' y='251.91' style='font-size: 14.00px; font-family: "Arial";' textLength='17.89px' lengthAdjust='spacingAndGlyphs'>No</text>
+<text x='376.56' y='269.19' style='font-size: 14.00px; font-family: "Arial";' textLength='22.84px' lengthAdjust='spacingAndGlyphs'>Yes</text>
 </g>
 </g>
 </svg>
