@@ -44,9 +44,9 @@ data_path <- "C:/Users/deyne/Documents/WashU_Job/MURI_Position/Stroop Reward Tas
 
 Participants go through learning, practice, and baseline blocks of Stroop stimuli. Following this, they go through two types of Stroop blocks:
 
-1.  Rewarded blocks — A specific color item is rewarded
+1.  Reward Blocks — A specific ink color is rewarded
 
-2.  Unrewarded blocks — No colors/trials are rewarded.
+2.  No Reward Blocks — No colors/trials are rewarded.
 
 Participants are given 4 cycles of alternating sequences of 1. and 2. above. Reward blocks always start at the beginning of the cycle.
 
@@ -677,7 +677,7 @@ for (id in unique_sids) {
 
 <br>
 
-### Distractor Identity Rewarded (across cycle) x Reward Block x Congruency: RT
+### Word Identity Rewarded (across cycle) x Reward Block x Congruency: RT
 
 ```{r}
 #| results: asis
@@ -720,7 +720,7 @@ print(
   d_cycle_rt_overall |>
     rename(
       "Block Type" = BlockType,
-      "Distractor Identity Rewarded (cycle)" = rewarded_distractor_identity,
+      "Word Identity Rewarded (cycle)" = rewarded_distractor_identity,
       "Mean RT (ms)" = means,
       "SD" = sd,
       "N" = n
@@ -752,7 +752,7 @@ p <- ggplot(d_cycle_rt_overall, aes(x=Congruency, y=means,
   scale_color_manual(
     values = c("Yes" = "turquoise3", "No" = "darkgrey")
   ) +
-  labs(color = "Distractor Identity Rewarded (cycle)", shape = "Distractor Identity Rewarded (cycle)") +
+  labs(color = "Word Identity Rewarded (cycle)", shape = "Word Identity Rewarded (cycle)") +
   theme_classic() +
   theme(axis.title.x = element_text(size=15),
         axis.title.y = element_text(size=15),
@@ -807,6 +807,166 @@ for (id in unique_sids) {
 
   )
   
+}
+
+```
+:::
+
+<br>
+
+<br>
+
+### Color-Word Identity Rewarded (across cycle) x Reward Block x Congruency: RT
+
+```{r}
+#| results: asis
+#| echo: false
+#| warnings: false
+#| fig-width: 9
+#| fig-height: 6
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+#| label: overall-color-distractor-reward-means
+
+reward_color_distractor_rt_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & Stimulus.ACC == 1) |>
+  droplevels() |>
+  group_by(ShortID, BlockType, rewarded_this_cycle,
+           rewarded_distractor_identity, Congruency) |>
+  summarise(
+    mean_rt = round(mean(Stimulus.RT, na.rm = TRUE)),
+    sd_rt = round(sd(Stimulus.RT, na.rm = TRUE)),
+    n = n(), 
+    .groups = "drop"
+  ) |>
+  mutate(BlockType = factor(BlockType, 
+                           levels = c("RewardList", "NoRewardList"),
+                           labels = c("Reward Block", "No Reward Block")))
+
+reward_color_distractor_rt_overall <- reward_color_distractor_rt_summary |>
+  group_by(BlockType, rewarded_this_cycle,
+           rewarded_distractor_identity, Congruency) |>
+  summarise(
+    means = round(mean(mean_rt, na.rm = TRUE)),
+    sd = round(sd(mean_rt, na.rm = TRUE)),
+    n = n(),
+    .groups = "drop"
+    ) |>
+  mutate(se = round(sd/sqrt(n)))
+
+reward_color_distractor_rt_overall <- reward_color_distractor_rt_overall |>
+  mutate(
+    plot_shape = factor(
+      ifelse(rewarded_distractor_identity == "Yes" & Congruency == "Incongruent", 1, 0),
+      levels = c(0, 1),
+      labels = c("Other", "Word Identity not Color Rewarded")
+    )
+  )
+
+
+no_reward_cong <- reward_color_distractor_rt_overall |>
+  filter(rewarded_this_cycle == "No", rewarded_distractor_identity == "No", Congruency == "Congruent")
+reward_distractor_inc <- reward_color_distractor_rt_overall |>
+  filter(rewarded_this_cycle == "No", rewarded_distractor_identity == "Yes", Congruency == "Incongruent")
+# Combine for plotting line
+grey_circ_tri <- bind_rows(no_reward_cong, reward_distractor_inc)
+
+p <- ggplot(reward_color_distractor_rt_overall, aes(
+    x = Congruency, y = means,
+    group = rewarded_this_cycle,
+    color = rewarded_this_cycle,
+    shape = plot_shape
+  )) +
+  geom_line(size=1) +
+  geom_point(size = 3) +
+  geom_line(
+    data = grey_circ_tri,
+    aes(x = Congruency, y = means, group = 1),
+    color = "darkgrey",
+    linetype = "dashed",
+    size = 1,
+    inherit.aes = FALSE
+  ) +
+  geom_errorbar(aes(ymin = means - se, ymax = means + se), width = .1) +
+  geom_text(aes(label = means, 
+                hjust = ifelse(Congruency == "Congruent", 1.5, -0.5)),
+            size = 4,
+            color = "black",
+            show.legend = FALSE) +
+  xlab("Trial Type") +
+  ylab("Reaction Time (ms)") +
+  ylim(c(440, 810)) +
+  facet_wrap(~BlockType) +
+  scale_color_manual(
+    values = c("Yes" = "turquoise3", "No" = "darkgrey")
+  ) +
+  scale_shape_manual(
+    values = c("Other" = 16, "Word Identity not Color Rewarded" = 17),
+    breaks = "Word Identity not Color Rewarded",
+    labels = c("Word Identity but not Color Rewarded")
+  ) +
+  labs(color = "Color rewarded", shape = NULL) +
+  theme_classic() +
+  theme(
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    axis.text.x = element_text(size = 15, color = "black"),
+    axis.text.y = element_text(size = 15, color = "black"),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.position = c(0.98, 0.05),
+    legend.justification = c("right", "bottom"),
+    legend.spacing.y = unit(0.1, "cm"),
+    legend.margin = margin(4, 4, 4, 4),
+    legend.box.background = element_rect(fill = "white", colour = "black", linewidth = .5),
+    legend.box.margin = margin(4, 4, 4, 4),
+    strip.background = element_blank(),
+    strip.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+ggsave(
+  filename = "color_distractor_rewarded.svg", 
+  plot = p,
+  device = "svg",
+  width = 8,  
+  height = 5,  
+  dpi = 300,   
+  bg = "white" 
+)
+rm(p) # clearing space
+```
+
+![](color_distractor_rewarded.svg){.lightbox style="margin-left: 0;"}
+
+::: {.callout-note collapse="true" appearance="minimal"}
+#### Participant-specific averages
+
+```{r}
+#| results: asis
+#| echo: false
+#| warnings: false
+#| label: participant-color-distractor-reward-means
+
+
+
+for (id in unique_sids) {
+
+  cat("<br>")
+  cat(id)
+  print(
+    reward_color_distractor_rt_summary |>
+      filter(ShortID == id) |>
+      select(-ShortID) |>
+      knitr::kable(
+        format = "markdown",
+        digits = 0
+      ) |>
+      kableExtra::kable_styling(full_width = FALSE, position = "left")
+
+  )
+
 }
 
 ```
