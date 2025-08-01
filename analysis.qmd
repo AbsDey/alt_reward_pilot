@@ -677,9 +677,9 @@ for (id in unique_sids) {
 
 <br>
 
-
-:::: {.callout-note collapse="true" appearance="minimal"}
+:::: {.callout-warning collapse="true" appearance="simple"}
 ### Word Identity Rewarded (across cycle) x Reward Block x Congruency: RT
+#### Caution: Both Color rewarded and not rewarded trials contaminate incongruent word-identity not rewarded trials
 
 ::: panel-tabset
 #### Overall
@@ -979,7 +979,6 @@ for (id in unique_sids) {
 
 <br>
 
-
 ### Color-Word Identity Rewarded (across cycle) x Reward Block x Congruency: Error
 
 ```{r}
@@ -1104,9 +1103,8 @@ ggsave(
 rm(p)
 
 ```
-![](color_distractor_rewarded_err.svg){.lightbox style="margin-left: 0;"}
-<br>
 
+![](color_distractor_rewarded_err.svg){.lightbox style="margin-left: 0;"} <br>
 
 ### Trial Series: RT and Stroop
 
