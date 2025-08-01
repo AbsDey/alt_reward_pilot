@@ -677,7 +677,12 @@ for (id in unique_sids) {
 
 <br>
 
+
+:::: {.callout-note collapse="true" appearance="minimal"}
 ### Word Identity Rewarded (across cycle) x Reward Block x Congruency: RT
+
+::: panel-tabset
+#### Overall
 
 ```{r}
 #| results: asis
@@ -780,7 +785,6 @@ rm(p) # clearing space
 
 ![](distractor_rewarded_cycle.svg){.lightbox style="margin-left: 0;"}
 
-::: {.callout-note collapse="true" appearance="minimal"}
 #### Participant-specific averages
 
 ```{r}
@@ -811,6 +815,7 @@ for (id in unique_sids) {
 
 ```
 :::
+::::
 
 <br>
 
@@ -939,6 +944,135 @@ rm(p) # clearing space
 ```
 
 ![](color_distractor_rewarded.svg){.lightbox style="margin-left: 0;"}
+
+<br>
+
+### Color-Word Identity Rewarded (across cycle) x Reward Block x Congruency: Error
+
+```{r}
+#| results: asis
+#| echo: false
+#| warnings: false
+#| fig-width: 9
+#| fig-height: 6
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+#| label: overall-color-distractor-reward-error-means
+
+reward_color_distractor_err_summary <- data |>
+  filter(!is.na(AlternatingBlocks)) |>
+  mutate(error = 1-Stimulus.ACC)|>
+  droplevels() |>
+  group_by(ShortID, BlockType, rewarded_this_cycle,
+           rewarded_distractor_identity, Congruency) |>
+  summarise(
+    mean_err = round(mean(error, na.rm = TRUE), 3),
+    sd_err = round(sd(error, na.rm = TRUE), 3),
+    n = n(),
+    .groups = "drop"
+  ) |>
+  mutate(BlockType = factor(BlockType,
+                           levels = c("RewardList", "NoRewardList"),
+                           labels = c("Reward Block", "No Reward Block")))
+
+reward_color_distractor_err_overall <- reward_color_distractor_err_summary |>
+  group_by(BlockType, rewarded_this_cycle,
+           rewarded_distractor_identity, Congruency) |>
+  summarise(
+    means = round(mean(mean_err, na.rm = TRUE), 3),
+    sd = round(sd(mean_err, na.rm = TRUE), 3),
+    n = n(),
+    .groups = "drop"
+    ) |>
+  mutate(se = round(sd/sqrt(n), 3))
+
+reward_color_distractor_err_overall <- reward_color_distractor_err_overall |>
+  mutate(
+    plot_shape = factor(
+      ifelse(rewarded_distractor_identity == "Yes" & Congruency == "Incongruent", 1, 0),
+      levels = c(0, 1),
+      labels = c("Other", "Word Identity not Color Rewarded")
+    )
+  )
+
+
+no_reward_cong <- reward_color_distractor_err_overall |>
+  filter(rewarded_this_cycle == "No", rewarded_distractor_identity == "No", Congruency == "Congruent")
+reward_distractor_inc <- reward_color_distractor_err_overall |>
+  filter(rewarded_this_cycle == "No", rewarded_distractor_identity == "Yes", Congruency == "Incongruent")
+# Combine for plotting line
+grey_circ_tri <- bind_rows(no_reward_cong, reward_distractor_inc)
+
+p <- ggplot(reward_color_distractor_err_overall, aes(
+    x = Congruency, y = means,
+    group = rewarded_this_cycle,
+    color = rewarded_this_cycle,
+    shape = plot_shape
+  )) +
+  geom_line(size=1) +
+  geom_point(size = 3) +
+  geom_line(
+    data = grey_circ_tri,
+    aes(x = Congruency, y = means, group = 1),
+    color = "darkgrey",
+    linetype = "dashed",
+    size = 1,
+    inherit.aes = FALSE
+  ) +
+  geom_errorbar(aes(ymin = means - se, ymax = means + se), width = .1) +
+  geom_text(aes(label = means, 
+                hjust = ifelse(Congruency == "Congruent", 1.5, -0.5)),
+            size = 4,
+            color = "black",
+            show.legend = FALSE) +
+  xlab("Trial Type") +
+  ylab("Error Rate") +
+  ylim(c(0, 0.15)) +
+  facet_wrap(~BlockType) +
+  scale_color_manual(
+    values = c("Yes" = "turquoise3", "No" = "darkgrey")
+  ) +
+  scale_shape_manual(
+    values = c("Other" = 16, "Word Identity not Color Rewarded" = 17),
+    breaks = "Word Identity not Color Rewarded",
+    labels = c("Word Identity but not Color Rewarded")
+  ) +
+  labs(color = "Color rewarded", shape = NULL) +
+  theme_classic() +
+  theme(
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    axis.text.x = element_text(size = 15, color = "black"),
+    axis.text.y = element_text(size = 15, color = "black"),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    legend.position = c(0.98, 0.05),
+    legend.justification = c("right", "bottom"),
+    legend.spacing.y = unit(0.1, "cm"),
+    legend.margin = margin(4, 4, 4, 4),
+    legend.box.background = element_rect(fill = "white", colour = "black", linewidth = .5),
+    legend.box.margin = margin(4, 4, 4, 4),
+    strip.background = element_blank(),
+    strip.text = element_text(size = 12),
+    panel.border = element_rect(color = "black", fill = NA)
+  )
+
+ggsave(
+  filename = "color_distractor_rewarded_err.svg", 
+  plot = p,
+  device = "svg",
+  width = 8,  
+  height = 5,  
+  dpi = 300,   
+  bg = "white" 
+)
+
+rm(p)
+
+```
+![](color_distractor_rewarded_err.svg){.lightbox style="margin-left: 0;"}
+<br>
 
 ::: {.callout-note collapse="true" appearance="minimal"}
 #### Participant-specific averages
@@ -1133,6 +1267,161 @@ rm(p)
 ```
 
 ![Note. We take the difference between incongruent and congruent z-scored RTs. A within-participant difference at a given trial cannot be computed due to the reason noted in the raw RT series. As such the "Stroop" effect here is a between-participant difference at each trial. Values above the the dashed line indicate a (positive) "Stroop" effect. Values below the dashed line indicate a reverse (negative) "Stroop" effect.](stroop_series.svg){.lightbox}
+
+------------------------------------------------------------------------
+
+<br>
+
+### Trial Series: Error and Error-Stroop
+
+#### Color Item that was rewarded or previously rewarded in the last reward block
+
+```{r}
+#| code-fold: true
+#| label: reward-color-error-series
+#| fig-width: 30  # Increased width
+#| fig-height: 6  # Increased height
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+#| fig-scroll: true  # Enable horizontal scrolling
+#| fig-align: "left"  # Align to left for better scrolling
+
+
+rtc_series_err_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & !is.na(rtc_trialnum)) |>
+  mutate(error=1-Stimulus.ACC) |>
+  group_by(Congruency, rtc_trialnum) |>
+  summarise(
+    mean = round(mean(error, na.rm = TRUE), 3),
+    sd = round(sd(error, na.rm = TRUE), 3),
+    n = n(), 
+    .groups = "drop"
+  ) |>
+  mutate(se = round(sd/sqrt(n), 3))
+
+shade_regions <- data.frame(
+  xmin = c(1, 36.51, 54.51, 90.51, 108.51, 144.51, 162.51, 198.51),
+  xmax = c(36.49, 54.49, 90.49, 108.49, 144.49, 162.49, 198.49, 216),
+  fill = c("paleturquoise1", "grey", "paleturquoise1", "grey",
+           "paleturquoise1", "grey", "paleturquoise1", "grey")
+)
+
+p <- ggplot(data = rtc_series_err_summary,
+            aes(x = rtc_trialnum, y = mean,
+                color = Congruency, group = Congruency)) +
+  geom_rect(data = shade_regions,
+            aes(xmin = xmin, xmax = xmax,
+                ymin = -Inf, ymax = Inf,
+                fill = fill),
+            inherit.aes = FALSE,
+            alpha = 0.2) +
+  scale_fill_identity() +  # Use the fill colors as specified
+  geom_point(size = 3) +
+  geom_line(size = 1) +
+  geom_errorbar(aes(ymin = mean - se, 
+                    ymax = mean + se),
+                width = 0.2) +
+  scale_color_manual(values = c("Congruent" = "lightgreen",
+                               "Incongruent" = "lightcoral")) +
+  scale_x_continuous(breaks = seq(0, max(rtc_series_err_summary$rtc_trialnum),
+                                  by = 5), expand = c(0,0)) +
+  labs(x = "Rewarded Trial Number",
+       y = "Error Rate",
+       title = "Error Rate Series for only Rewarded Colors by Congruency") +
+  ylim(c(-0.03, 0.63)) +
+  theme_classic() +
+  theme(axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        legend.title = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.background = element_blank(),
+        legend.key = element_blank(),
+        legend.position = c(.96, .90),
+        plot.title = element_text(size = 28))
+
+ggsave(
+  filename = "rewarded_color_error_series.svg", 
+  plot = p,
+  device = "svg",
+  width = 30,  
+  height = 6,  
+  dpi = 300,   
+  bg = "white" 
+)
+
+rm(p) # clearing space
+```
+
+![](rewarded_color_error_series.svg){.lightbox}
+
+<br>
+
+```{r}
+#| code-fold: true
+#| label: reward-color-error-stroop-series
+#| fig-width: 30  # Increased width
+#| fig-height: 6  # Increased height
+#| dpi: 300
+#| fig-format: "svg"
+#| fig-retina: 2
+#| fig-scroll: true  # Enable horizontal scrolling
+#| fig-align: "left"  # Align to left for better scrolling
+
+rtc_err_stroop_summary <- data |>
+  filter(!is.na(AlternatingBlocks) & !is.na(rtc_trialnum)) |>
+  mutate(error=1-Stimulus.ACC) |>
+  group_by(Congruency, rtc_trialnum)|>
+  summarise(
+    mean_err = round(mean(error, na.rm=TRUE), 3),
+    .groups = "drop"
+  ) |>
+  pivot_wider(
+    id_cols = rtc_trialnum,
+    names_from = Congruency,
+    values_from = mean_err
+  ) |>
+  mutate(err_stroop = Incongruent - Congruent)
+
+p <- ggplot(data = rtc_err_stroop_summary, aes(x = rtc_trialnum, y = err_stroop)) +
+  geom_rect(data = shade_regions,
+            aes(xmin = xmin, xmax = xmax,
+                ymin = -Inf, ymax = Inf,
+                fill = fill),
+            inherit.aes = FALSE,
+            alpha = 0.2) +
+  scale_fill_identity() +  # Use the fill colors as specified
+  geom_point(size = 3) +
+  geom_line(size = 1) +
+  geom_hline(yintercept=0, linetype=2, size=1, color = "tomato3") +
+  scale_x_continuous(breaks = seq(0, max(rtc_err_stroop_summary$rtc_trialnum),
+                                  by = 5), expand = c(0,0)) +
+  labs(x = "Rewarded Trial Number",
+       y = "Error Stroop",
+       title = "Error Rate Stroop Series for only Rewarded Colors") +
+  ylim(c(-.5, .5)) +
+  theme_classic() +
+  theme(axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 28))
+
+ggsave(
+  filename = "err_stroop_series.svg", 
+  plot = p,
+  device = "svg",
+  width = 30,  
+  height = 6,  
+  dpi = 300,   
+  bg = "white" 
+)
+rm(p)
+```
+
+![](err_stroop_series.svg){.lightbox}
 
 ------------------------------------------------------------------------
 
