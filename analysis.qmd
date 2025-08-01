@@ -945,7 +945,40 @@ rm(p) # clearing space
 
 ![](color_distractor_rewarded.svg){.lightbox style="margin-left: 0;"}
 
+::: {.callout-note collapse="true" appearance="minimal"}
+#### Participant-specific averages
+
+```{r}
+#| results: asis
+#| echo: false
+#| warnings: false
+#| label: participant-color-distractor-reward-means
+
+
+
+for (id in unique_sids) {
+
+  cat("<br>")
+  cat(id)
+  print(
+    reward_color_distractor_rt_summary |>
+      filter(ShortID == id) |>
+      select(-ShortID) |>
+      knitr::kable(
+        format = "markdown",
+        digits = 0
+      ) |>
+      kableExtra::kable_styling(full_width = FALSE, position = "left")
+
+  )
+
+}
+
+```
+:::
+
 <br>
+
 
 ### Color-Word Identity Rewarded (across cycle) x Reward Block x Congruency: Error
 
@@ -1074,39 +1107,6 @@ rm(p)
 ![](color_distractor_rewarded_err.svg){.lightbox style="margin-left: 0;"}
 <br>
 
-::: {.callout-note collapse="true" appearance="minimal"}
-#### Participant-specific averages
-
-```{r}
-#| results: asis
-#| echo: false
-#| warnings: false
-#| label: participant-color-distractor-reward-means
-
-
-
-for (id in unique_sids) {
-
-  cat("<br>")
-  cat(id)
-  print(
-    reward_color_distractor_rt_summary |>
-      filter(ShortID == id) |>
-      select(-ShortID) |>
-      knitr::kable(
-        format = "markdown",
-        digits = 0
-      ) |>
-      kableExtra::kable_styling(full_width = FALSE, position = "left")
-
-  )
-
-}
-
-```
-:::
-
-<br>
 
 ### Trial Series: RT and Stroop
 
